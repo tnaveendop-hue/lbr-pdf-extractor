@@ -4,11 +4,11 @@ import pandas as pd
 import io
 import os
 
-st.set_page_config(page_title="SBGEN PDF Extractor", layout="wide")
+st.set_page_config(page_title="Last Balance Report PDF Extractor", layout="wide")
 
-st.title("📄 SBGEN PDF Table Extractor")
+st.title("📄 LBR PDF Table Extractor")
 
-uploaded = st.file_uploader("Upload SBGEN PDF file", type=["pdf"])
+uploaded = st.file_uploader("Upload a PDF file", type=["pdf"])
 
 def extract_pdf_tables(pdf_bytes):
     tables = []
