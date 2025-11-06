@@ -29,7 +29,6 @@ def extract_pdf_tables(pdf_bytes):
                 df = pd.DataFrame(table)
                 df.columns = df.iloc[0]      # first row = header
                 df = df[1:]                  # remove header row
-                df["__page__"] = page_no
                 tables.append(df)
     return tables
 
