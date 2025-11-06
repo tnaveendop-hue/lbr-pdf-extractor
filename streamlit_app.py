@@ -2,23 +2,13 @@ import streamlit as st
 import pdfplumber
 import pandas as pd
 import io
+import os
 
-st.set_page_config(
-    page_title="Last Balance Report PDF Extractor",
-    layout="wide",
-    page_icon="📄",
-)
+st.set_page_config(page_title="SBGEN PDF Extractor", layout="wide")
 
-st.title("📄 Last Balance Report PDF Table Extractor")
-st.write("Upload a PDF and extract tables from all pages automatically.")
+st.title("📄 SBGEN PDF Table Extractor")
 
-# --- Sidebar ---
-st.sidebar.header("Settings")
-show_raw_tables = st.sidebar.checkbox("Show page-level tables", False)
-clean_column_names = st.sidebar.checkbox("Clean column names", True)
-
-# --- File Upload ---
-uploaded = st.file_uploader("Upload Pdf file", type=["pdf"])
+uploaded = st.file_uploader("Upload SBGEN PDF file", type=["pdf"])
 
 def extract_pdf_tables(pdf_bytes):
     tables = []
@@ -41,10 +31,10 @@ def clean_columns(df):
     )
     return df
 
-# --- Processing ---
 if uploaded:
     pdf_bytes = uploaded.read()
-    
+    input_filename = os.path.splitext(uploaded.name)[0]
+
     with st.spinner("Extracting tables from PDF…"):
         tables = extract_pdf_tables(pdf_bytes)
 
@@ -52,37 +42,38 @@ if uploaded:
         st.error("No tables found in the PDF.")
         st.stop()
 
-    st.success(f"✅ Extracted {len(tables)} tables from {len(set(t.__len__() for t in tables))} pages")
-
-    # Combined table
+    # Combine
     combined = pd.concat(tables, ignore_index=True)
+    combined = clean_columns(combined)
 
-    if clean_column_names:
-        combined = clean_columns(combined)
+    total_rows = len(combined)
+    total_pages_with_tables = len({df["__page__"].iloc[0] for df in tables})
 
-    st.subheader("📊 Combined Extracted Data")
+    st.success(
+        f"✅ Extracted **{total_rows} rows** from **{total_pages_with_tables} page(s)**"
+    )
+
+    st.subheader("📊 Extracted Data")
     st.dataframe(combined, use_container_width=True)
 
-    # --- Export buttons ---
+    # Export filenames
+    csv_filename = f"{input_filename}_extracted.csv"
+    xlsx_filename = f"{input_filename}_extracted.xlsx"
+
+    # CSV download
     st.download_button(
         "⬇️ Download CSV",
         combined.to_csv(index=False).encode("utf-8"),
-        "sbgen_extracted.csv",
+        csv_filename,
         "text/csv",
     )
 
+    # Excel download
     excel_buffer = io.BytesIO()
     combined.to_excel(excel_buffer, index=False)
     st.download_button(
         "⬇️ Download Excel",
         excel_buffer.getvalue(),
-        "sbgen_extracted.xlsx",
+        xlsx_filename,
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-
-    # --- Optional Page-level views ---
-    if show_raw_tables:
-        st.subheader("📄 Page-level table preview")
-        for i, df in enumerate(tables, start=1):
-            st.markdown(f"### Page {i}")
-            st.dataframe(df, use_container_width=True)
